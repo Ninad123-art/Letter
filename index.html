@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="FurPaws: food safety checker, emergency check, portion calculator and care guide for new cat and dog parents in India.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27 fill=%27%233B3FB0%27%3E%3Cellipse cx=%2716%27 cy=%2721%27 rx=%277.5%27 ry=%276.5%27/%3E%3Cellipse cx=%277%27 cy=%2713%27 rx=%273%27 ry=%273.8%27/%3E%3Cellipse cx=%2712.5%27 cy=%277.5%27 rx=%273%27 ry=%273.8%27/%3E%3Cellipse cx=%2719.5%27 cy=%277.5%27 rx=%273%27 ry=%273.8%27/%3E%3Cellipse cx=%2725%27 cy=%2713%27 rx=%273%27 ry=%273.8%27/%3E%3C/svg%3E">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>FurPaws</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a working home screen for a pet parent — food check as the hero, then tools in a loose two-column flow that stacks on phones. */
+:root{
+  --bg:#F3F4F9; --surface:#FFFFFF; --ink:#1B1D2E; --muted:#5D6078; --line:#DCDEEA;
+  --accent:#3B3FB0; --accent-soft:#E6E7FA; --on-accent:#FFFFFF;
+  --safe:#1E7A4C; --safe-bg:#E2F3EA; --warn:#9A5B00; --warn-bg:#FCEFD6; --bad:#B42318; --bad-bg:#FDE6E3;
+  --f-display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12131C; --surface:#1B1D2A; --ink:#ECEDF5; --muted:#A3A6BE; --line:#2E3144;
+  --accent:#A3A7FF; --accent-soft:#272A4A; --on-accent:#12131C;
+  --safe:#6FD4A0; --safe-bg:#173326; --warn:#F2BE62; --warn-bg:#3A2C12; --bad:#FF8A7E; --bad-bg:#3D1A17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12131C; --surface:#1B1D2A; --ink:#ECEDF5; --muted:#A3A6BE; --line:#2E3144;
+  --accent:#A3A7FF; --accent-soft:#272A4A; --on-accent:#12131C;
+  --safe:#6FD4A0; --safe-bg:#173326; --warn:#F2BE62; --warn-bg:#3A2C12; --bad:#FF8A7E; --bad-bg:#3D1A17; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px}
+h1,h2,h3{font-family:var(--f-display);line-height:1.1;text-wrap:balance;margin:0}
+h2{font-size:clamp(1.6rem,3.4vw,2.2rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-weight:800;font-size:1.35rem;text-decoration:none;color:var(--ink)}
+.brand svg{width:28px;height:28px;fill:var(--accent)}
+.nav{display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0}
+.nav a{text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem;padding:6px 10px;border-radius:999px}
+.nav a:hover{background:var(--accent-soft);color:var(--ink)}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;font-weight:700;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+@media (max-width:760px){.nav{display:none}}
+
+/* hero */
+.hero{padding-block:44px 28px;display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:start}
+.hero > *{min-width:0}
+@media (max-width:860px){.hero{grid-template-columns:1fr;padding-block:28px 20px}}
+.hero h1{font-size:clamp(2.4rem,6.4vw,4.4rem);font-weight:800;letter-spacing:-.03em;margin-block:10px 14px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:1.1rem;color:var(--muted);max-width:52ch}
+.search{display:flex;gap:8px;margin-top:22px;background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:6px 6px 6px 20px}
+.search input{flex:1;min-width:0;border:0;background:none;font-size:1.1rem;outline:none}
+.btn{border:0;background:var(--accent);color:var(--on-accent);font-weight:700;padding:10px 18px;border-radius:999px;cursor:pointer}
+.btn.ghost{background:var(--accent-soft);color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:.88rem;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+
+.pet{display:flex;align-items:center;gap:12px;margin-top:22px;flex-wrap:wrap}
+.pet .tag{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:600;font-size:.92rem}
+.linkbtn{background:none;border:0;color:var(--accent);font-weight:700;cursor:pointer;padding:4px;text-decoration:underline;text-underline-offset:3px}
+
+.verdict{border-radius:var(--r);padding:24px;background:var(--surface);border:1px solid var(--line);display:grid;gap:14px}
+.verdict .big{font-family:var(--f-display);font-size:clamp(1.6rem,3.6vw,2.2rem);font-weight:800;line-height:1.05}
+.verdict[data-v="safe"]{background:var(--safe-bg);border-color:transparent}
+.verdict[data-v="safe"] .big{color:var(--safe)}
+.verdict[data-v="caution"]{background:var(--warn-bg);border-color:transparent}
+.verdict[data-v="caution"] .big{color:var(--warn)}
+.verdict[data-v="toxic"]{background:var(--bad-bg);border-color:transparent}
+.verdict[data-v="toxic"] .big{color:var(--bad)}
+.verdict dl{margin:0;display:grid;gap:10px}
+.verdict dt{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.verdict dd{margin:2px 0 0}
+.other{font-size:.9rem;color:var(--muted);border-top:1px solid color-mix(in srgb,var(--ink) 12%,transparent);padding-top:10px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-top:16px;display:grid;gap:12px}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.field{display:grid;gap:4px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.field input,.field select{font-size:1rem;font-weight:500;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%}
+
+/* season banner */
+.season-now{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--ink);color:var(--bg);border-radius:var(--r);padding:16px 20px;margin-bottom:8px}
+.season-now b{font-family:var(--f-display);font-size:1.15rem}
+.season-now a{color:var(--bg);font-weight:700}
+
+/* sections */
+section.block{padding-block:48px;border-top:1px solid var(--line)}
+.head{display:grid;gap:8px;margin-bottom:24px;max-width:62ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.two > *{min-width:0}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+
+/* why */
+.why{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+@media (max-width:860px){.why{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.why{grid-template-columns:1fr}}
+.why div{display:grid;gap:6px;align-content:start}
+.why b{font-family:var(--f-display);font-size:1.1rem}
+.why span{color:var(--muted);font-size:.95rem}
+
+/* triage */
+.groups{display:grid;gap:18px}
+.group h3{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--f-body);margin-bottom:8px}
+.sym{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;margin-bottom:6px}
+.sym input{margin-top:4px;accent-color:var(--accent);width:18px;height:18px;flex:none}
+.sym:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.triage-out{position:sticky;top:90px}
+.tri{border-radius:var(--r);padding:22px;display:grid;gap:10px;background:var(--surface);border:1px solid var(--line)}
+.tri .big{font-family:var(--f-display);font-weight:800;font-size:1.8rem;line-height:1.05}
+.tri[data-l="now"]{background:var(--bad-bg);border-color:transparent}.tri[data-l="now"] .big{color:var(--bad)}
+.tri[data-l="today"]{background:var(--warn-bg);border-color:transparent}.tri[data-l="today"] .big{color:var(--warn)}
+.tri[data-l="watch"]{background:var(--safe-bg);border-color:transparent}.tri[data-l="watch"] .big{color:var(--safe)}
+.ecard{margin-top:14px;border:2px dashed var(--line);border-radius:var(--r);padding:16px;display:grid;gap:6px}
+.ecard .num{font-family:var(--f-mono);font-size:1.15rem;user-select:all}
+
+/* calc */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:grid;gap:16px}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:480px){.stat{grid-template-columns:1fr}}
+.stat div{display:grid;gap:2px;background:var(--bg);border-radius:10px;padding:12px}
+.stat .n{font-family:var(--f-mono);font-size:1.5rem;font-variant-numeric:tabular-nums;color:var(--accent)}
+.stat .l{font-size:.8rem;color:var(--muted);font-weight:600}
+.formula{font-family:var(--f-mono);font-size:.82rem;color:var(--muted);background:var(--bg);border-radius:8px;padding:8px 10px;overflow-x:auto}
+
+/* ask */
+.askbar{display:flex;gap:8px;flex-wrap:wrap}
+.askbar input{flex:1;min-width:200px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:12px 18px;font-size:1rem}
+.hits{display:grid;gap:12px;margin-top:16px}
+.hit{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:grid;gap:6px}
+.hit .src{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hit mark{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 2px}
+
+/* plan */
+.progress{height:10px;background:var(--line);border-radius:999px;overflow:hidden}
+.progress span{display:block;height:100%;background:var(--accent);transition:width .3s}
+.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:18px}
+.weeks > *{min-width:0}
+@media (max-width:960px){.weeks{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.weeks{grid-template-columns:1fr}}
+.week{display:grid;gap:8px;align-content:start}
+.week h3{display:flex;align-items:baseline;gap:8px}
+.week h3 small{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);font-weight:500}
+.todo{display:flex;gap:10px;align-items:flex-start;font-size:.95rem;cursor:pointer;padding:8px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+.todo input{margin-top:4px;accent-color:var(--accent);width:17px;height:17px;flex:none}
+.todo:has(input:checked) span{text-decoration:line-through;color:var(--muted)}
+
+/* plants table */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-size:.78rem;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.pill.safe{background:var(--safe-bg);color:var(--safe)}
+.pill.caution{background:var(--warn-bg);color:var(--warn)}
+.pill.toxic{background:var(--bad-bg);color:var(--bad)}
+
+/* seasons */
+.seasons{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media (max-width:520px){.seasons{grid-template-columns:1fr}}
+.season{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:8px;align-content:start}
+.season.now{border:2px solid var(--accent)}
+.season .when{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.season ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:.92rem}
+.nowtag{font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:var(--accent);color:var(--on-accent);border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+
+/* first aid */
+.aid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:760px){.aid{grid-template-columns:1fr}}
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0}
+summary{cursor:pointer;padding:14px 16px;font-weight:700;font-family:var(--f-display);font-size:1.05rem}
+details p{padding:0 16px 16px;color:var(--ink)}
+
+footer{border-top:1px solid var(--line);padding-block:28px 40px;color:var(--muted);font-size:.9rem;display:grid;gap:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="FurPaws home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="21" rx="7.5" ry="6.5"/><ellipse cx="7" cy="13" rx="3" ry="3.8"/><ellipse cx="12.5" cy="7.5" rx="3" ry="3.8"/><ellipse cx="19.5" cy="7.5" rx="3" ry="3.8"/><ellipse cx="25" cy="13" rx="3" ry="3.8"/></svg>
+      FurPaws
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#emergency">Emergency check</a><a href="#portions">Portions</a><a href="#ask">Ask</a><a href="#plan">First 30 days</a><a href="#seasons">Seasons</a><a href="#firstaid">First aid</a>
+    </nav>
+    <div class="seg" role="group" aria-label="Choose your pet">
+      <button type="button" id="sp-cat" data-sp="cat">Cat</button>
+      <button type="button" id="sp-dog" data-sp="dog">Dog</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <div class="hero">
+    <div>
+      <p class="eyebrow">For new cat and dog parents in India</p>
+      <h1>Can <em id="h-name">Mochi</em> eat this?</h1>
+      <p class="lede">Type any food from your kitchen. FurPaws answers from a checked list and never guesses. If a food is not on the list, the answer is: don't feed it yet.</p>
+      <form class="search" id="food-form" role="search">
+        <input id="food-q" type="text" autocomplete="off" placeholder="Try: mango, dal, milk, chocolate" aria-label="Food to check" value="Grapes">
+        <button class="btn" type="submit">Check</button>
+      </form>
+      <div class="chips" id="food-chips"></div>
+      <div class="pet">
+        <span class="tag" id="pet-tag"></span>
+        <button class="linkbtn" type="button" id="edit-pet">Edit pet profile</button>
+      </div>
+      <div class="panel" id="pet-panel" hidden>
+        <div class="form">
+          <label class="field">Pet's name<input id="p-name" type="text"></label>
+          <label class="field">Pet<select id="p-species"><option value="cat">Cat</option><option value="dog">Dog</option></select></label>
+          <label class="field">Life stage<select id="p-stage"><option value="baby">Kitten / puppy (under 1 yr)</option><option value="adult">Adult (1–7 yrs)</option><option value="senior">Senior (7+ yrs)</option></select></label>
+          <label class="field">Weight (kg)<input id="p-weight" type="number" min="0.3" max="90" step="0.1"></label>
+          <label class="field">Sterilised?<select id="p-neutered"><option value="yes">Yes</option><option value="no">Not yet</option></select></label>
+          <label class="field">Your vet's number<input id="p-vet" type="tel" placeholder="Add it now, not in a panic"></label>
+          <label class="field">Nearest 24-hour pet hospital<input id="p-hospital" type="text" placeholder="Name and phone"></label>
+        </div>
+        <p class="muted" style="font-size:.85rem">Saved only in this browser.</p>
+        <div><button class="btn" type="button" id="save-pet">Save profile</button></div>
+      </div>
+    </div>
+    <div class="verdict" id="verdict" aria-live="polite"></div>
+  </div>
+
+  <div class="season-now" id="season-now"></div>
+
+  <section class="block" aria-labelledby="why-h">
+    <div class="head"><p class="eyebrow">Why not just ask a chatbot?</p><h2 id="why-h">Built for the moment you are worried</h2></div>
+    <div class="why">
+      <div><b>It knows your pet</b><span>Every answer changes with species, age and weight. Portions are worked out for your pet, not "an average cat".</span></div>
+      <div><b>It never guesses on poison</b><span>Food and plant answers come from a fixed, checked list. Anything unknown is treated as unsafe.</span></div>
+      <div><b>Made for Indian homes</b><span>Dal, roti, money plant, monsoon ticks, Diwali crackers and balcony netting, not a foreign checklist.</span></div>
+      <div><b>One screen in an emergency</b><span>A clear "go now, call today or watch" answer, with your vet's number right next to it.</span></div>
+    </div>
+  </section>
+
+  <section class="block" id="emergency" aria-labelledby="em-h">
+    <div class="head"><p class="eyebrow">Emergency check</p><h2 id="em-h">Is this an emergency?</h2><p class="muted">Tick what you see right now. This gives first guidance, not a diagnosis. When in doubt, call the vet.</p></div>
+    <div class="two">
+      <div class="groups" id="sym-groups"></div>
+      <div class="triage-out">
+        <div class="tri" id="tri" aria-live="polite"></div>
+        <div class="ecard" id="ecard"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="portions" aria-labelledby="po-h">
+    <div class="head"><p class="eyebrow">Daily portions</p><h2 id="po-h">How much should <span class="pname">Mochi</span> eat?</h2><p class="muted">Check the calories on your food packet and enter them below. Weigh food with a kitchen scale; cups and katoris vary a lot.</p></div>
+    <div class="card">
+      <div class="form">
+        <label class="field">Weight (kg)<input id="c-weight" type="number" min="0.3" max="90" step="0.1"></label>
+        <label class="field">Food energy (kcal per 100 g)<input id="c-kcal" type="number" min="50" max="600" step="1"></label>
+        <label class="field">Goal<select id="c-goal"><option value="keep">Keep weight</option><option value="lose">Lose weight (vet-advised)</option></select></label>
+      </div>
+      <div class="stat">
+        <div><span class="n" id="o-kcal">0</span><span class="l">kcal per day</span></div>
+        <div><span class="n" id="o-grams">0</span><span class="l">grams of this food per day</span></div>
+        <div><span class="n" id="o-water">0</span><span class="l">ml water per day, roughly</span></div>
+      </div>
+      <p id="o-note" class="muted"></p>
+      <div class="formula" id="o-formula"></div>
+    </div>
+  </section>
+
+  <section class="block" id="ask" aria-labelledby="ask-h">
+    <div class="head"><p class="eyebrow">Ask FurPaws</p><h2 id="ask-h">Search the care guide</h2><p class="muted">Answers come only from FurPaws' own guide, and each one shows where it came from.</p></div>
+    <form class="askbar" id="ask-form">
+      <input id="ask-q" type="text" placeholder="e.g. my cat is not eating" aria-label="Your question" value="scared of fireworks">
+      <button class="btn" type="submit">Search</button>
+    </form>
+    <div class="chips" id="ask-chips"></div>
+    <div class="hits" id="hits" aria-live="polite"></div>
+  </section>
+
+  <section class="block" id="plan" aria-labelledby="plan-h">
+    <div class="head"><p class="eyebrow">New parent plan</p><h2 id="plan-h">Your first 30 days with <span class="pname">Mochi</span></h2></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px"><span class="muted" id="plan-count"></span><button class="linkbtn" type="button" id="plan-reset">Clear ticks</button></div>
+    <div class="progress"><span id="plan-bar" style="width:0"></span></div>
+    <div class="weeks" id="weeks"></div>
+  </section>
+
+  <section class="block" aria-labelledby="pl-h">
+    <div class="two">
+      <div>
+        <div class="head"><p class="eyebrow">Houseplants</p><h2 id="pl-h">Is this plant safe at home?</h2></div>
+        <div class="tablewrap"><table><thead><tr><th>Plant</th><th>Cats</th><th>Dogs</th></tr></thead><tbody id="plants"></tbody></table></div>
+      </div>
+      <div id="seasons">
+        <div class="head"><p class="eyebrow">Through the Indian year</p><h2>Season by season</h2></div>
+        <div class="seasons" id="season-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="firstaid" aria-labelledby="fa-h">
+    <div class="head"><p class="eyebrow">Tough times at home</p><h2 id="fa-h">What to do before you reach the vet</h2><p class="muted">Never give human medicine. Paracetamol can kill a cat, and ibuprofen is dangerous for cats and dogs.</p></div>
+    <div class="aid" id="aid"></div>
+  </section>
+
+  <footer>
+    <p>FurPaws gives general guidance for healthy pets. It does not replace a veterinarian. If your pet seems very unwell, go to a vet.</p>
+    <p>A project by Maithili Raut.</p>
+  </footer>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let P = Object.assign({name:'Mochi', species:'cat', stage:'adult', weight:4, neutered:'yes', vet:'', hospital:'', kcal:''}, store.get('fp_profile', {}));
+const sp = () => P.species;
+const kind = () => sp()==='cat' ? (P.stage==='baby'?'kitten':'cat') : (P.stage==='baby'?'puppy':'dog');
+
+/* ---------- FOOD LIST ---------- */
+const V = {safe:'Safe in small amounts', caution:'Only a little, rarely', toxic:'Do not feed'};
+const FOODS = [
+ {n:'Chocolate', a:['chocolate','cocoa','brownie','chocolate cake','dairy milk'], dog:'toxic', cat:'toxic', why:'Contains theobromine and caffeine. Dark and baking chocolate are the most dangerous. Signs include vomiting, restlessness, fast heartbeat and seizures.', act:'Call your vet now. Note the type of chocolate, how much, and when.'},
+ {n:'Grapes and raisins', a:['grape','grapes','raisin','raisins','kishmish','angoor','currant'], dog:'toxic', cat:'toxic', why:'Can cause sudden kidney failure in dogs, even in small amounts. The safe amount is unknown, so cats should avoid them too.', act:'Call your vet now, even if your pet seems fine.'},
+ {n:'Onion and garlic', a:['onion','garlic','pyaz','lehsun','chives','spring onion','leek'], dog:'toxic', cat:'toxic', why:'Damage red blood cells and can cause anaemia. Cats are even more sensitive than dogs. Cooked, raw and powdered forms all count. Signs can appear days later.', act:'Call your vet if your pet ate a meal containing them.'},
+ {n:'Dal, sabzi and curries', a:['dal','daal','sabzi','curry','gravy','biryani','khichdi with masala','masala','spicy food','pav bhaji'], dog:'toxic', cat:'toxic', why:'Home-cooked Indian dishes usually contain onion, garlic, salt, chilli and oil. Onion and garlic are toxic; the rest upsets the stomach.', act:'Avoid. If you want to share, keep aside plain boiled rice or chicken before adding masala.'},
+ {n:'Xylitol (sugar-free sweetener)', a:['xylitol','sugar free','sugar-free gum','chewing gum','sugar free sweets'], dog:'toxic', cat:'toxic', why:'In dogs it causes a rapid drop in blood sugar and can cause liver failure. Found in sugar-free gum, mints and some peanut butters.', act:'Emergency. Go to a vet now.'},
+ {n:'Tea and coffee', a:['tea','chai','coffee','caffeine','energy drink','cola'], dog:'toxic', cat:'toxic', why:'Caffeine causes restlessness, a racing heart, tremors and seizures.', act:'Call your vet if more than a lick was taken.'},
+ {n:'Alcohol', a:['alcohol','beer','wine','whisky','rum'], dog:'toxic', cat:'toxic', why:'Even small amounts can cause vomiting, breathing problems and coma in pets.', act:'Go to a vet now.'},
+ {n:'Cooked bones', a:['bone','bones','chicken bone','mutton bone','haddi','fish bone'], dog:'toxic', cat:'toxic', why:'Cooked bones splinter and can choke, cut the mouth or block and tear the gut.', act:'Do not try to pull a stuck bone. If your pet is gagging, drooling, vomiting or has a hard belly, go to a vet.'},
+ {n:'Raw dough', a:['raw dough','dough','atta dough','yeast','pizza dough'], dog:'toxic', cat:'toxic', why:'Yeast dough expands in the stomach and produces alcohol as it ferments.', act:'Call your vet now.'},
+ {n:'Macadamia nuts', a:['macadamia','macadamia nut'], dog:'toxic', cat:'toxic', why:'Cause weakness, wobbliness, vomiting and fever in dogs.', act:'Call your vet.'},
+ {n:'Milk', a:['milk','doodh','cow milk','buffalo milk'], dog:'caution', cat:'caution', why:'Many adult cats and dogs cannot digest lactose well and get diarrhoea. Kittens and puppies need a pet milk replacer, not cow milk.', act:'Water is the best drink. Skip milk if you see loose stools.'},
+ {n:'Curd (plain dahi)', a:['curd','dahi','yogurt','yoghurt','buttermilk','chaas'], dog:'safe', cat:'caution', why:'Plain, unsweetened curd is usually fine for dogs in a spoonful or two. Cats may get diarrhoea from dairy.', act:'Plain only: no sugar, salt or masala.'},
+ {n:'Plain boiled chicken', a:['chicken','boiled chicken','plain chicken'], dog:'safe', cat:'safe', why:'Lean, easy to digest protein. Boneless, skinless and with no salt, oil or masala.', act:'A good treat or a short bland meal on vet advice. It is not a complete diet by itself.'},
+ {n:'Boiled egg', a:['egg','boiled egg','cooked egg','anda','scrambled egg'], dog:'safe', cat:'safe', why:'Fully cooked egg is a good protein treat.', act:'Cook fully, no salt or oil. A small piece for cats.'},
+ {n:'Raw egg', a:['raw egg','kacha anda'], dog:'caution', cat:'caution', why:'Risk of salmonella, and raw egg white can block the absorption of biotin.', act:'Cook it first.'},
+ {n:'Plain rice', a:['rice','chawal','boiled rice'], dog:'safe', cat:'safe', why:'Plain cooked rice is gentle on the stomach. Cats need meat, so rice is only a tiny extra for them.', act:'Plain, without dal, ghee or salt.'},
+ {n:'Roti / chapati', a:['roti','chapati','phulka','bread','pav'], dog:'caution', cat:'caution', why:'Not toxic, but it is filler with little nutrition. Many people feed street dogs roti daily, which leaves them undernourished.', act:'An occasional plain piece is fine. No ghee or butter.'},
+ {n:'Paneer', a:['paneer','cottage cheese','cheese'], dog:'caution', cat:'caution', why:'High in fat and has lactose. Small amounts are usually tolerated.', act:'A small cube now and then, plain.'},
+ {n:'Fish (cooked)', a:['fish','cooked fish','machli','pomfret','surmai','rohu'], dog:'safe', cat:'safe', why:'Cooked, deboned fish is a good treat. Cats fed mostly raw fish can develop thiamine (vitamin B1) deficiency.', act:'Cook it, remove every bone, no masala.'},
+ {n:'Tuna (canned)', a:['tuna','canned tuna','canned fish'], dog:'caution', cat:'caution', why:'Fine as an occasional treat in water, not oil or brine. Too much adds mercury and it is not a complete diet.', act:'Keep it to a treat once or twice a week.'},
+ {n:'Mango', a:['mango','aam','mangoes'], dog:'safe', cat:'caution', why:'Ripe mango flesh is fine for dogs in small pieces. The seed is a choking and blockage risk and the skin is hard to digest. Cats get no benefit from fruit.', act:'Flesh only, no seed or skin. Sugar is high, so keep it small.'},
+ {n:'Banana', a:['banana','kela'], dog:'safe', cat:'caution', why:'A few slices are fine for dogs. High in sugar.', act:'A few small slices as a treat.'},
+ {n:'Apple', a:['apple','seb'], dog:'safe', cat:'safe', why:'Fine in small pieces. Seeds contain compounds that release cyanide, and the core can choke.', act:'Remove seeds and core.'},
+ {n:'Watermelon', a:['watermelon','tarbooz'], dog:'safe', cat:'safe', why:'Hydrating summer treat in small cubes.', act:'Remove seeds and rind.'},
+ {n:'Cucumber', a:['cucumber','kheera','kakdi'], dog:'safe', cat:'safe', why:'Low-calorie, watery snack.', act:'Small slices, no salt or chaat masala.'},
+ {n:'Carrot', a:['carrot','gajar'], dog:'safe', cat:'safe', why:'Good crunchy treat for dogs. Cats can have a little cooked carrot.', act:'Cut into small pieces to avoid choking.'},
+ {n:'Pumpkin (plain)', a:['pumpkin','kaddu','lal bhopla'], dog:'safe', cat:'safe', why:'Plain cooked pumpkin has fibre that can help mild stool problems.', act:'Plain cooked or puréed, a spoon or two.'},
+ {n:'Peanut butter', a:['peanut butter','peanut','groundnut','moongphali'], dog:'caution', cat:'caution', why:'Plain unsalted peanut butter is usually fine for dogs in small amounts. Some brands contain xylitol, which is deadly.', act:'Read the label. No xylitol, no salt. A small lick only.'},
+ {n:'Biscuits and namkeen', a:['biscuit','biscuits','glucose biscuit','namkeen','chips','farsan','bhujia','salty snacks'], dog:'caution', cat:'caution', why:'High in sugar, salt and oil, with no real nutrition. Too much salt can make pets very ill.', act:'Avoid as a habit. Use plain boiled chicken or pet treats instead.'},
+ {n:'Ice cream and sweets', a:['ice cream','mithai','sweets','laddoo','barfi','kheer','dessert'], dog:'caution', cat:'caution', why:'Sugar, fat and lactose upset the stomach. Some contain chocolate, raisins or xylitol, which are toxic.', act:'Avoid. Check for chocolate, raisins or xylitol if your pet stole some.'},
+ {n:'Avocado', a:['avocado','butter fruit'], dog:'caution', cat:'caution', why:'Contains persin and lots of fat. The pit can cause a blockage.', act:'Best avoided.'},
+ {n:'Dog food (for cats)', a:['dog food'], dog:'safe', cat:'caution', why:'Cats need more protein and taurine than dog food provides. A nibble is fine, a diet of it is not.', act:'Feed cats a complete cat food.'},
+ {n:'Cat food (for dogs)', a:['cat food'], dog:'caution', cat:'safe', why:'Too rich in fat and protein for dogs and can upset the stomach.', act:'Keep cat bowls out of the dog\'s reach.'}
+];
+function norm(s){ return String(s).toLowerCase().replace(/[^a-z0-9\s-]/g,' ').split(/\s+/).filter(Boolean).map(w=>w.length>3&&w.endsWith('s')?w.slice(0,-1):w).join(' '); }
+function findFood(q){
+  q = norm(q); if(!q) return null;
+  let best=null, bs=0;
+  for(const f of FOODS){ for(const raw of [f.n, ...f.a]){
+    const a = norm(raw); let s=0;
+    if(a===q) s=1000; else if((' '+q+' ').includes(' '+a+' ')) s=a.length*10; else if(q.length>=3 && a.startsWith(q)) s=q.length;
+    if(s>bs){ bs=s; best=f; }
+  }}
+  return best;
+}
+function renderFood(){
+  const q = $('#food-q').value.trim(), el = $('#verdict');
+  if(!q){ el.removeAttribute('data-v'); el.innerHTML = '<p class="eyebrow">Food check</p><div class="big">Type a food to check</div><p class="muted">Try something from today\'s meal.</p>'; return; }
+  const f = findFood(q), me = sp(), other = me==='cat'?'dog':'cat', nm = esc(P.name||'your pet');
+  if(!f){
+    el.setAttribute('data-v','caution');
+    el.innerHTML = `<p class="eyebrow">${esc(q)}</p><div class="big">Not on our checked list</div><p>FurPaws does not guess about food safety. Until your vet says yes, don't give this to ${nm}.</p><p class="muted">If ${nm} already ate some and seems unwell, use the <a href="#emergency">emergency check</a>.</p>`;
+    return;
+  }
+  const v = f[me];
+  el.setAttribute('data-v', v);
+  el.innerHTML = `<p class="eyebrow">${esc(f.n)} · for ${nm} the ${kind()}</p>
+    <div class="big">${V[v]}</div>
+    <dl><div><dt>Why</dt><dd>${esc(f.why)}</dd></div>
+    <div><dt>${v==='toxic'?'If '+nm+' already ate some':'How to give it'}</dt><dd>${esc(f.act)}</dd></div></dl>
+    ${v==='toxic'?`<p><a href="#emergency">Open your emergency card</a>. Do not make your pet vomit unless a vet tells you to.</p>`:''}
+    <p class="other">For ${other}s: <b>${V[f[other]]}</b></p>`;
+}
+const FOOD_CHIPS = ['Mango','Dal','Milk','Chocolate','Roti','Boiled egg','Curd','Chicken bone'];
+$('#food-chips').innerHTML = FOOD_CHIPS.map(c=>`<button type="button" class="chip">${c}</button>`).join('');
+$('#food-chips').addEventListener('click', e=>{ if(e.target.matches('.chip')){ $('#food-q').value=e.target.textContent; renderFood(); }});
+$('#food-form').addEventListener('submit', e=>{ e.preventDefault(); renderFood(); });
+$('#food-q').addEventListener('input', renderFood);
+
+/* ---------- TRIAGE ---------- */
+const SYM = [
+ {l:'Struggling to breathe, or breathing with mouth open', lv:'now', sp:'both', note:'In cats, open-mouth breathing is always an emergency.'},
+ {l:'Straining in the litter box or to pee, with little or no urine', lv:'now', sp:'both', note:'A blocked bladder, common in male cats, can be fatal within a day or two.'},
+ {l:'Swollen, hard belly and retching with nothing coming up', lv:'now', sp:'dog', note:'This can be bloat (GDV), which needs surgery fast.'},
+ {l:'Seizure, collapse, or cannot stand', lv:'now', sp:'both'},
+ {l:'Ate something toxic (chocolate, grapes, xylitol, lilies, medicine, rat poison)', lv:'now', sp:'both', note:'Take the packet with you. Do not make your pet vomit unless a vet tells you to.'},
+ {l:'Pale, white, blue or grey gums', lv:'now', sp:'both'},
+ {l:'Bleeding that does not stop after 5 minutes of pressure', lv:'now', sp:'both'},
+ {l:'Heavy panting, drooling or wobbling after time in heat', lv:'now', sp:'both', note:'Possible heatstroke. Cool with room-temperature water and a fan on the way.'},
+ {l:'Fell from a height or was hit by a vehicle, even if it seems fine', lv:'now', sp:'both'},
+ {l:'Vomiting 3 or more times today, or blood in vomit or stool', lv:'now', sp:'both'},
+ {l:'Has not eaten for 24 hours', lv:'today', sp:'cat', note:'Cats that stop eating can develop fatty liver disease. Do not wait it out.'},
+ {l:'Has skipped two or more meals', lv:'today', sp:'dog'},
+ {l:'Vomited once or twice and seems quiet or tired', lv:'today', sp:'both'},
+ {l:'Diarrhoea for more than a day', lv:'today', sp:'both'},
+ {l:'Limping for more than a day', lv:'today', sp:'both'},
+ {l:'Red, squinting or runny eye', lv:'today', sp:'both'},
+ {l:'Shaking head, scratching ears, or smelly ears', lv:'today', sp:'both'},
+ {l:'Drinking and peeing much more than usual', lv:'today', sp:'both'},
+ {l:'Found a tick, and now seems dull or has a fever', lv:'today', sp:'dog', note:'Tick fever is common in India, especially in the monsoon.'},
+ {l:'Vomited once (or a hairball) and is now acting normal', lv:'watch', sp:'both'},
+ {l:'Sneezes now and then but eats and plays as usual', lv:'watch', sp:'both'},
+ {l:'Slightly soft stool, normal energy and appetite', lv:'watch', sp:'both'},
+ {l:'Hiding more after a new home, guests or loud noise', lv:'watch', sp:'both'}
+];
+const LV = {
+  now:{t:'Go to a vet now', d:'Call on the way so they can get ready. Keep your pet calm and warm. No food, water or human medicine unless the vet says so.'},
+  today:{t:'Call your vet today', d:'Not an emergency right now, but this needs a vet\'s opinion within the day. If new signs from the first group appear, go now.'},
+  watch:{t:'Watch at home for 24 hours', d:'Keep fresh water nearby, note what you see, and check again in a few hours. If it gets worse or does not improve in a day, call your vet.'}
+};
+const GL = {now:'Go now', today:'Call the vet today', watch:'Usually fine to watch'};
+function renderSym(){
+  const keep = new Set([...document.querySelectorAll('#sym-groups input:checked')].map(i=>i.dataset.i));
+  $('#sym-groups').innerHTML = ['now','today','watch'].map(lv=>`<div class="group"><h3>${GL[lv]}</h3>${
+    SYM.map((s,i)=>({s,i})).filter(o=>o.s.lv===lv&&(o.s.sp==='both'||o.s.sp===sp())).map(o=>`<label class="sym"><input type="checkbox" id="sym-${o.i}" data-i="${o.i}" ${keep.has(String(o.i))?'checked':''}><span>${esc(o.s.l)}</span></label>`).join('')
+  }</div>`).join('');
+  renderTri();
+}
+function renderTri(){
+  const picked = [...document.querySelectorAll('#sym-groups input:checked')].map(i=>SYM[+i.dataset.i]);
+  const el = $('#tri'), nm = esc(P.name||'your pet');
+  if(!picked.length){ el.removeAttribute('data-l'); el.innerHTML = `<p class="eyebrow">Result</p><div class="big">Tick what you see</div><p class="muted">The result appears here, with your vet's number below.</p>`; return; }
+  let lv = picked.some(s=>s.lv==='now')?'now':picked.some(s=>s.lv==='today')?'today':'watch';
+  const young = P.stage==='baby' && lv==='watch';
+  if(young) lv='today';
+  const notes = picked.filter(s=>s.note && s.lv===lv).map(s=>`<li>${esc(s.note)}</li>`).join('');
+  el.setAttribute('data-l', lv);
+  el.innerHTML = `<p class="eyebrow">Result for ${nm}</p><div class="big">${LV[lv].t}</div><p>${LV[lv].d}</p>${young?`<p><b>${kind()==='kitten'?'Kittens':'Puppies'} get sick faster than adults</b>, so call your vet today even for mild signs.</p>`:''}${notes?`<ul style="margin:0;padding-left:18px">${notes}</ul>`:''}`;
+}
+$('#sym-groups').addEventListener('change', renderTri);
+function renderECard(){
+  $('#ecard').innerHTML = `<p class="eyebrow">Emergency card</p>
+   <div><span class="muted">Your vet</span><div class="num">${P.vet?esc(P.vet):'Not added yet'}</div></div>
+   <div><span class="muted">24-hour pet hospital</span><div class="num" style="font-family:var(--f-body)">${P.hospital?esc(P.hospital):'Not added yet'}</div></div>
+   ${(!P.vet||!P.hospital)?'<button class="linkbtn" type="button" data-edit>Add these numbers now, before you need them</button>':''}`;
+}
+$('#ecard').addEventListener('click', e=>{ if(e.target.matches('[data-edit]')) openPanel(); });
+
+/* ---------- PORTIONS ---------- */
+function mult(){
+  const n = P.neutered==='yes', g = $('#c-goal').value;
+  if(sp()==='cat'){ if(g==='lose') return [0.8,'weight loss']; if(P.stage==='baby') return [2.5,'growing kitten']; if(P.stage==='senior') return [1.1,'senior cat']; return n?[1.2,'sterilised adult cat']:[1.4,'intact adult cat']; }
+  if(g==='lose') return [1.0,'weight loss']; if(P.stage==='baby') return [2.5,'growing puppy']; if(P.stage==='senior') return [1.4,'senior dog']; return n?[1.6,'sterilised adult dog']:[1.8,'intact adult dog'];
+}
+function defKcal(){ return sp()==='cat'?380:350; }
+function renderCalc(){
+  const w = parseFloat($('#c-weight').value), k = parseFloat($('#c-kcal').value);
+  if(!(w>0)){ ['#o-kcal','#o-grams','#o-water'].forEach(s=>$(s).textContent='–'); $('#o-note').textContent='Enter a weight to see portions.'; $('#o-formula').textContent=''; return; }
+  const rer = 70*Math.pow(w,0.75), [m,lab] = mult(), kcal = rer*m;
+  $('#o-kcal').textContent = Math.round(kcal);
+  $('#o-grams').textContent = k>0 ? Math.round(kcal/k*100) : '–';
+  $('#o-water').textContent = Math.round(w*50);
+  const treats = Math.round(kcal*0.1);
+  $('#o-note').textContent = `Estimate for a ${lab}. Split into ${P.stage==='baby'?'3–4':'2'} meals. Treats should stay under ${treats} kcal a day (10%). Weigh ${P.name||'your pet'} every 2–4 weeks and adjust with your vet; every pet is different.`;
+  $('#o-formula').textContent = `RER = 70 × ${w}^0.75 = ${Math.round(rer)} kcal  ·  × ${m} (${lab}) = ${Math.round(kcal)} kcal/day`;
+}
+['#c-weight','#c-kcal','#c-goal'].forEach(s=>$(s).addEventListener('input', ()=>{
+  const w = parseFloat($('#c-weight').value); if(w>0) P.weight=w;
+  P.kcal = $('#c-kcal').value; store.set('fp_profile',P); renderCalc(); renderTag();
+}));
+
+/* ---------- GUIDE (searchable) ---------- */
+const GUIDE = [
+ {t:'Cat not eating', sp:'cat', tags:'appetite not eating food refuse hungry anorexia', b:'A cat that eats nothing for 24 hours needs a call to the vet. Cats that go without food can develop fatty liver disease (hepatic lipidosis), which is serious. Offer warm wet food, but do not wait it out. Kittens need help even sooner.'},
+ {t:'Dog not eating', sp:'dog', tags:'appetite not eating food refuse hungry', b:'Skipping one meal with normal energy can be fine, especially in heat. If your dog skips two or more meals, or also vomits or seems dull, call the vet. Puppies should be seen the same day.'},
+ {t:'Upset stomach in dogs', sp:'dog', tags:'vomit vomiting diarrhoea diarrhea loose motion stomach bland diet', b:'After your vet agrees, feed small portions of plain boiled chicken and rice for a day or two with fresh water, then switch back to normal food gradually. Blood, repeated vomiting or a dull, weak dog means a vet visit.', fa:true},
+ {t:'Hairballs', sp:'cat', tags:'hairball vomit cough grooming brushing', b:'An occasional hairball is normal. Regular brushing reduces them. Frequent retching with nothing coming up, constipation or not eating needs a vet check.'},
+ {t:'Heatstroke', sp:'both', tags:'heat hot summer panting heatstroke temperature drool', b:'Signs: heavy panting, drooling, bright red gums, wobbling or collapse. Move your pet to shade, wet the body with room-temperature or cool water (not ice), use a fan, offer small sips of water, and go to a vet even if they seem to recover.', fa:true},
+ {t:'Ate something toxic', sp:'both', tags:'poison toxic ate chocolate grapes medicine rat poison swallowed', b:'Note what was eaten, how much and when, and take the packet with you. Call the vet right away. Do not make your pet vomit at home unless the vet tells you to; for some poisons this causes more harm.', fa:true},
+ {t:'Diwali and fireworks fear', sp:'both', tags:'fireworks crackers diwali scared fear noise anxiety festival', b:'Prepare a safe room with closed windows and curtains, and play the TV or music. Give a hiding spot such as a box or crate with a blanket. Keep cats indoors and walk dogs before evening. Make sure the ID tag has your number. Comfort your pet calmly; never scold fear. If your pet panics badly every year, talk to your vet a few weeks before Diwali.', fa:true},
+ {t:'Ticks and tick fever', sp:'both', tags:'tick ticks fleas monsoon fever itching parasite', b:'Check ears, neck, armpits and between toes every day in the monsoon. Remove ticks with a tick tool close to the skin; do not burn or squeeze them. Fever, dullness, pale gums or not eating after ticks need a vet, as tick fever is common in India. Never use dog tick products on cats: permethrin, found in many of them, is toxic to cats.', fa:true},
+ {t:'Litter box setup', sp:'cat', tags:'litter box toilet pee poop potty peeing outside', b:'Keep one box per cat plus one extra, in a quiet place away from food. Use unscented clumping litter and scoop daily. A cat that suddenly pees outside the box may have a urinary problem; call the vet.'},
+ {t:'Potty training a puppy', sp:'dog', tags:'potty toilet training pee poop accident house training', b:'Take your puppy out after waking, eating and playing, and every 2 hours. Praise and reward right after they go. Clean accidents with an enzyme cleaner and never punish; it teaches them to hide.'},
+ {t:'Vaccinations', sp:'both', tags:'vaccine vaccination injection rabies schedule booster', b:'Dogs need core vaccines (often given as DHPPi+L) and rabies. Cats need core vaccines (often called tricat or FVRCP) and rabies. Kittens and puppies usually start at 6 to 8 weeks with boosters every 3 to 4 weeks until about 16 weeks, then yearly as your vet advises. Rabies vaccination is essential in India, and cities such as Mumbai need it for a pet licence.'},
+ {t:'Deworming', sp:'both', tags:'deworm deworming worms parasite tablet', b:'Kittens and puppies are usually dewormed often in the first months, then every few months as adults. Your vet will set the schedule based on age and lifestyle.'},
+ {t:'Scratching furniture', sp:'cat', tags:'scratch scratching sofa furniture nails claws', b:'Scratching is normal and healthy. Place a tall, stable scratching post near where your cat sleeps and reward its use. Trim nail tips every 2 to 3 weeks. Never declaw.'},
+ {t:'Puppy biting', sp:'dog', tags:'bite biting nipping teething chew', b:'Puppies explore with their mouths and teethe from about 3 to 6 months. Swap your hand for a chew toy, and stop play for a moment when teeth touch skin. Stay calm and consistent.'},
+ {t:'New cat hiding', sp:'cat', tags:'hiding scared shy new home settle stress', b:'Hiding for a few days is normal. Start your cat in one quiet room with food, water, litter and a box to hide in. Sit nearby and let them come to you. If your cat does not eat for 24 hours, call the vet.'},
+ {t:'Water and drinking', sp:'both', tags:'water drink drinking thirst dehydration', b:'Pets need roughly 50 ml of water per kg of body weight a day. Cats drink little, so wet food and several bowls help. A sudden big rise in thirst can signal kidney disease or diabetes; see the vet.'},
+ {t:'Sterilisation', sp:'both', tags:'neuter spay sterilise sterilization castration heat', b:'Your vet will advise on timing, often around 5 to 6 months. It prevents unplanned litters, reduces spraying and roaming, and lowers the risk of some cancers.'},
+ {t:'Bathing and grooming', sp:'both', tags:'bath bathing shampoo grooming brush smell', b:'Dogs usually need a bath every few weeks, using dog shampoo, because human shampoo suits a different skin pH. Cats groom themselves and rarely need baths; regular brushing is enough. Dry paws and between toes well in the monsoon.'},
+ {t:'Balcony and window safety', sp:'both', tags:'balcony window fall netting high rise building safety', b:'Falls from balconies and windows are common in city flats, especially for cats chasing birds. Fit sturdy netting on balconies and windows before bringing your pet home.'},
+ {t:'Pet first-aid kit', sp:'both', tags:'first aid kit emergency supplies bandage', b:'Keep gauze, a crepe bandage, saline, a vet-approved antiseptic, a tick remover, a digital thermometer, a towel, a carrier and your vet\'s number together. Never give human painkillers: paracetamol is deadly for cats and ibuprofen is dangerous for both.', fa:true},
+ {t:'Small cuts and wounds', sp:'both', tags:'cut wound bleeding injury bite scratch', b:'Press a clean cloth on the wound for 5 minutes, then rinse with saline. See a vet if it is deep, gaping, still bleeding, or was caused by a bite, because bites often get infected.', fa:true},
+ {t:'Senior pet care', sp:'both', tags:'senior old age elderly arthritis', b:'Older pets do well with a vet check every 6 months, soft bedding, and an eye on weight, teeth and thirst. Stiffness, weight loss or drinking more are worth a visit.'},
+ {t:'Indoor play on rainy days', sp:'both', tags:'bored boredom play rain indoor exercise enrichment toys', b:'Cats: two 10-minute sessions with a wand toy, cardboard boxes, and treats hidden in toilet-roll puzzles. Dogs: hide treats for sniffing games, play tug, and teach a new trick. Ten minutes of sniffing tires a dog more than you would expect.', fa:true},
+ {t:'Cat hiding in car engines', sp:'cat', tags:'winter car engine community cat street cat cold', b:'In cold weather, street and community cats sleep in warm car engines. Knock on the bonnet before starting the car.'}
+];
+const STOP = new Set('a an the my is are to of in on for and or with it its my our your can do does i me what how why when should cat cats dog dogs pet pets kitten puppy has have be at this that from so not'.split(' '));
+const toks = s => norm(s).split(' ').filter(w=>w && !STOP.has(w));
+function docs(){
+  const d = GUIDE.filter(g=>g.sp==='both'||g.sp===sp()).map(g=>({title:g.t, src:'Care guide', text:g.b, tags:g.tags}));
+  FOODS.forEach(f=>d.push({title:f.n, src:'Food list', text:`${V[f[sp()]]}. ${f.why} ${f.act}`, tags:f.a.join(' ')+' eat food feed'}));
+  PLANTS.forEach(p=>d.push({title:p.n, src:'Plant list', text:`Cats: ${PV[p.cat]}. Dogs: ${PV[p.dog]}. ${p.note}`, tags:p.a+' plant plants'}));
+  return d;
+}
+function search(q){
+  const qt = toks(q); if(!qt.length) return [];
+  return docs().map(d=>{
+    const T=toks(d.title), G=toks(d.tags), B=toks(d.text); let s=0;
+    qt.forEach(w=>{ if(T.includes(w)) s+=3; if(G.includes(w)) s+=2; if(B.includes(w)) s+=1; });
+    return {d,s};
+  }).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,3);
+}
+function renderHits(){
+  const q = $('#ask-q').value, r = search(q), qt = new Set(toks(q));
+  if(!q.trim()){ $('#hits').innerHTML=''; return; }
+  if(!r.length){ $('#hits').innerHTML = `<div class="hit"><b>No match in the guide</b><p class="muted">FurPaws only answers from its own checked guide. Try other words, or ask your vet.</p></div>`; return; }
+  $('#hits').innerHTML = r.map(({d})=>`<article class="hit"><span class="src">${d.src} · ${esc(d.title)}</span><p>${esc(d.text).split(/(\s+)/).map(w=>qt.has(norm(w))?`<mark>${w}</mark>`:w).join('')}</p></article>`).join('');
+}
+const ASK = ['not eating','how much water','tick on my pet','scratching sofa','first aid kit','balcony'];
+$('#ask-chips').innerHTML = ASK.map(c=>`<button type="button" class="chip">${c}</button>`).join('');
+$('#ask-chips').addEventListener('click', e=>{ if(e.target.matches('.chip')){ $('#ask-q').value=e.target.textContent; renderHits(); }});
+$('#ask-form').addEventListener('submit', e=>{ e.preventDefault(); renderHits(); });
+
+/* ---------- PLAN ---------- */
+const PLAN = [
+ {w:'Week 1', d:'Days 1–7', items:[
+  {t:'Book a vet check and first deworming', sp:'both'},
+  {t:'Set up one quiet room with food, water and a hiding spot', sp:'cat'},
+  {t:'Set up a bed and a fixed potty spot; go out every 2 hours', sp:'dog'},
+  {t:'Litter box: one per cat plus one, away from food', sp:'cat'},
+  {t:'Keep the same food the previous home used', sp:'both'},
+  {t:'Collar or tag with your phone number', sp:'both'}]},
+ {w:'Week 2', d:'Days 8–14', items:[
+  {t:'Start or continue the vaccine schedule', sp:'both'},
+  {t:'Fit netting on balconies and windows', sp:'both'},
+  {t:'Hide wires, threads, rubber bands and medicines', sp:'both'},
+  {t:'Add a tall scratching post near the bed', sp:'cat'},
+  {t:'Give safe chew toys for teething', sp:'dog'}]},
+ {w:'Week 3', d:'Days 15–21', items:[
+  {t:'If changing food, mix it in slowly over 7 days', sp:'both'},
+  {t:'Two short play sessions every day', sp:'both'},
+  {t:'Practise handling paws, ears and mouth with treats', sp:'both'},
+  {t:'Start short leash walks after vaccines are done', sp:'dog'},
+  {t:'Get your pet used to the carrier', sp:'cat'}]},
+ {w:'Week 4', d:'Days 22–30', items:[
+  {t:'Ask your vet when to sterilise', sp:'both'},
+  {t:'Start tick and flea prevention from the vet', sp:'both'},
+  {t:'Save your vet and nearest 24-hour hospital numbers', sp:'both'},
+  {t:'Weigh your pet and update the portion calculator', sp:'both'},
+  {t:'Register for a municipal pet licence if your city needs it', sp:'dog'}]}
+];
+const planKey = () => 'fp_plan_'+sp();
+function renderPlan(){
+  const done = new Set(store.get(planKey(), []));
+  let total=0, n=0;
+  $('#weeks').innerHTML = PLAN.map((wk,wi)=>`<div class="week"><h3>${wk.w}<small>${wk.d}</small></h3>${
+    wk.items.map((it,ii)=>({it,id:wi+'-'+ii})).filter(o=>o.it.sp==='both'||o.it.sp===sp()).map(o=>{ total++; const c=done.has(o.id); if(c) n++;
+      return `<label class="todo"><input type="checkbox" id="plan-${sp()}-${o.id}" data-id="${o.id}" ${c?'checked':''}><span>${esc(o.it.t)}</span></label>`;}).join('')
+  }</div>`).join('');
+  $('#plan-count').textContent = `${n} of ${total} done`;
+  $('#plan-bar').style.width = (total? n/total*100 : 0)+'%';
+}
+$('#weeks').addEventListener('change', e=>{
+  const done = new Set(store.get(planKey(), []));
+  e.target.checked ? done.add(e.target.dataset.id) : done.delete(e.target.dataset.id);
+  store.set(planKey(), [...done]); renderPlan();
+});
+$('#plan-reset').addEventListener('click', ()=>{ store.set(planKey(), []); renderPlan(); });
+
+/* ---------- PLANTS ---------- */
+const PV = {safe:'Safe', caution:'Mild, upsets stomach', toxic:'Toxic'};
+const PLANTS = [
+ {n:'Lilies', a:'lily lilies', cat:'toxic', dog:'caution', note:'Deadly to cats: even pollen or vase water can cause kidney failure. Keep them out of homes with cats.'},
+ {n:'Sago palm (cycas)', a:'sago cycas', cat:'toxic', dog:'toxic', note:'Very toxic. Seeds can cause liver failure.'},
+ {n:'Money plant (pothos)', a:'money plant pothos', cat:'toxic', dog:'toxic', note:'Causes mouth burning, drooling and vomiting.'},
+ {n:'Aloe vera', a:'aloe', cat:'toxic', dog:'toxic', note:'Causes vomiting and diarrhoea.'},
+ {n:'Peace lily', a:'peace lily', cat:'toxic', dog:'toxic', note:'Mouth irritation and drooling. Not a true lily.'},
+ {n:'Jade plant', a:'jade', cat:'toxic', dog:'toxic', note:'Vomiting and lethargy.'},
+ {n:'Snake plant', a:'snake plant sansevieria', cat:'caution', dog:'caution', note:'Mild stomach upset if chewed.'},
+ {n:'Marigold (genda)', a:'marigold genda', cat:'caution', dog:'caution', note:'Can irritate the mouth and stomach.'},
+ {n:'Areca palm', a:'areca palm', cat:'safe', dog:'safe', note:'A pet-friendly choice.'},
+ {n:'Spider plant', a:'spider plant', cat:'safe', dog:'safe', note:'Pet-friendly, though cats love to chew it.'},
+ {n:'Boston fern', a:'fern', cat:'safe', dog:'safe', note:'Pet-friendly.'},
+ {n:'Rose', a:'rose gulab', cat:'safe', dog:'safe', note:'Not toxic. Watch for thorns.'}
+];
+$('#plants').innerHTML = PLANTS.map(p=>`<tr><td><b>${esc(p.n)}</b><div class="muted" style="font-size:.85rem">${esc(p.note)}</div></td><td><span class="pill ${p.cat}">${PV[p.cat]}</span></td><td><span class="pill ${p.dog}">${PV[p.dog]}</span></td></tr>`).join('');
+
+/* ---------- SEASONS ---------- */
+const SEASONS = [
+ {k:'summer', t:'Summer heat', when:'Mar – May', m:[2,3,4], tips:['Walk dogs before 8 am and after 7 pm','Test the road with the back of your hand for 7 seconds; too hot for you is too hot for paws','Never leave a pet in a parked car','Pugs, bulldogs and Persians overheat fastest'], link:'heatstroke'},
+ {k:'monsoon', t:'Monsoon', when:'Jun – Sep', m:[5,6,7,8], tips:['Check for ticks every day','Dry paws and between toes after walks','Ask your vet about the leptospirosis vaccine','Avoid puddles and stagnant water'], link:'ticks'},
+ {k:'festival', t:'Diwali and festivals', when:'Oct – Nov', m:[9,10], tips:['Prepare a quiet safe room before the crackers start','Keep cats indoors and walk dogs early','Keep sweets, diyas and rangoli powder out of reach','Talk to your vet now if your pet panics at noise'], link:'fireworks'},
+ {k:'winter', t:'Winter', when:'Dec – Feb', m:[11,0,1], tips:['Raised, warm bedding for seniors and short-coated dogs','Knock on the car bonnet; cats sleep in warm engines','Keep heaters guarded','Keep walks going; joints need movement'], link:'winter car engine'}
+];
+function renderSeasons(){
+  const mo = new Date().getMonth(), cur = SEASONS.find(s=>s.m.includes(mo));
+  $('#season-grid').innerHTML = SEASONS.map(s=>`<div class="season ${s===cur?'now':''}"><h3>${s.t}${s===cur?'<span class="nowtag">Now</span>':''}</h3><span class="when">${s.when}</span><ul>${s.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`).join('');
+  const msg = {summer:'It is getting hot. Walk early, carry water, and learn the signs of heatstroke.', monsoon:'Tick season is here. Check your pet every day after walks.', festival:'Diwali is near. Prepare a quiet safe room before the crackers start.', winter:'Cold nights ahead. Give seniors a warm, raised bed.'}[cur.k];
+  $('#season-now').innerHTML = `<b>This month:</b><span>${msg}</span><a href="#ask" data-q="${cur.link}">Read the guide</a>`;
+}
+$('#season-now').addEventListener('click', e=>{ const q=e.target.dataset.q; if(q){ $('#ask-q').value=q; renderHits(); }});
+
+/* ---------- FIRST AID ---------- */
+function renderAid(){
+  $('#aid').innerHTML = GUIDE.filter(g=>g.fa && (g.sp==='both'||g.sp===sp())).map(g=>`<details><summary>${esc(g.t)}</summary><p>${esc(g.b)}</p></details>`).join('');
+}
+
+/* ---------- PROFILE ---------- */
+function renderTag(){
+  const st = {baby: sp()==='cat'?'kitten':'puppy', adult:'adult', senior:'senior'}[P.stage];
+  $('#pet-tag').textContent = `${P.name||'Your pet'} · ${st} ${P.stage==='baby'?'':sp()} · ${P.weight} kg`;
+  $('#h-name').textContent = P.name||'my pet';
+  document.querySelectorAll('.pname').forEach(e=>e.textContent=P.name||'your pet');
+  $('#sp-cat').setAttribute('aria-pressed', sp()==='cat'); $('#sp-dog').setAttribute('aria-pressed', sp()==='dog');
+}
+function openPanel(){
+  $('#p-name').value=P.name; $('#p-species').value=P.species; $('#p-stage').value=P.stage; $('#p-weight').value=P.weight;
+  $('#p-neutered').value=P.neutered; $('#p-vet').value=P.vet; $('#p-hospital').value=P.hospital;
+  $('#pet-panel').hidden=false; $('#p-name').focus(); $('#pet-panel').scrollIntoView({block:'nearest'});
+}
+$('#edit-pet').addEventListener('click', ()=> $('#pet-panel').hidden ? openPanel() : ($('#pet-panel').hidden=true));
+$('#save-pet').addEventListener('click', ()=>{
+  const spChanged = P.species !== $('#p-species').value;
+  P.name=$('#p-name').value.trim()||'My pet'; P.species=$('#p-species').value; P.stage=$('#p-stage').value;
+  const w=parseFloat($('#p-weight').value); if(w>0) P.weight=w;
+  P.neutered=$('#p-neutered').value; P.vet=$('#p-vet').value.trim(); P.hospital=$('#p-hospital').value.trim();
+  if(spChanged) P.kcal='';
+  store.set('fp_profile',P); $('#pet-panel').hidden=true; renderAll();
+});
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click', ()=>{
+  if(P.species===b.dataset.sp) return;
+  P.species=b.dataset.sp; P.kcal='';
+  if(P.name==='Mochi' && P.species==='dog'){ P.name='Bruno'; P.weight=18; }
+  else if(P.name==='Bruno' && P.species==='cat'){ P.name='Mochi'; P.weight=4; }
+  store.set('fp_profile',P); renderAll();
+}));
+
+function renderAll(){
+  renderTag(); renderFood(); renderSym(); renderECard();
+  $('#c-weight').value = P.weight; $('#c-kcal').value = P.kcal || defKcal();
+  renderCalc(); renderHits(); renderPlan(); renderSeasons(); renderAid();
+}
+renderAll();
+</script>
+
+</body>
+</html>
